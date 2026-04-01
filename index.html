@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Legacy Log">
+<meta name="theme-color" content="#0d1b2a">
+<meta name="description" content="Daily activity tracker for Play My Legacy outreach">
+<link rel="manifest" href="./manifest.json">
+<title>Legacy Log</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0d1b2a;
+    --navy-mid: #1a2f45;
+    --navy-light: #243b55;
+    --navy-border: #2e4a66;
+    --gold: #c9a84c;
+    --gold-light: #e8c97a;
+    --gold-dim: rgba(201,168,76,0.15);
+    --cream: #f5f0e8;
+    --cream-dim: rgba(245,240,232,0.6);
+    --green: #2ecc71;
+    --green-dim: rgba(46,204,113,0.12);
+    --red: #e74c3c;
+    --red-dim: rgba(231,76,60,0.12);
+    --amber: #f39c12;
+    --text-muted: #7a9bbc;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: var(--navy);
+    color: var(--cream);
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  /* ── APP SHELL ── */
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  /* ── STATUS BAR SPACER ── */
+  .status-bar {
+    height: var(--safe-top);
+    background: var(--navy);
+    flex-shrink: 0;
+  }
+
+  /* ── TOP NAV ── */
+  .top-nav {
+    background: var(--navy);
+    border-bottom: 1px solid var(--navy-light);
+    padding: 12px 16px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .nav-brand {
+    display: flex;
+    flex-direction: column;
+  }
+  .nav-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 3px;
+    color: var(--gold);
+    text-transform: uppercase;
+  }
+  .nav-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--cream);
+    line-height: 1;
+  }
+  .nav-title span { color: var(--gold); }
+  .nav-actions { display: flex; gap: 8px; }
+  .icon-btn {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--navy-light);
+    background: var(--navy-mid);
+    color: var(--cream-dim);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .icon-btn:active { background: var(--navy-light); transform: scale(0.95); }
+
+  /* ── STATS ROW ── */
+  .stats-row {
+    display: flex;
+    gap: 0;
+    background: var(--navy-mid);
+    border-bottom: 1px solid var(--navy-light);
+    flex-shrink: 0;
+  }
+  .stat-cell {
+    flex: 1;
+    padding: 8px 4px;
+    text-align: center;
+    border-right: 1px solid var(--navy-light);
+  }
+  .stat-cell:last-child { border-right: none; }
+  .stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--gold);
+    line-height: 1;
+  }
+  .stat-lbl {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  /* ── VIEWS ── */
+  .views {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+  }
+  .view {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    display: none;
+    padding-bottom: calc(60px + var(--safe-bottom));
+  }
+  .view.active { display: block; }
+
+  /* ── LOG VIEW ── */
+  .log-view { padding: 0; }
+
+  .date-group { margin-bottom: 0; }
+  .date-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--navy);
+    border-bottom: 1px solid var(--navy-light);
+    padding: 6px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .date-header-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--gold);
+    text-transform: uppercase;
+  }
+  .date-header-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .entry-card {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--navy-light);
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    animation: fadeSlide 0.25s ease;
+  }
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateX(-8px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  .entry-card:active { background: var(--navy-mid); }
+
+  .entry-time-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 42px;
+    padding-top: 2px;
+  }
+  .entry-time {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.3;
+  }
+  .entry-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--gold);
+    margin: 6px 0 0;
+    flex-shrink: 0;
+  }
+  .entry-dot.green { background: var(--green); }
+  .entry-dot.amber { background: var(--amber); }
+
+  .entry-body { flex: 1; min-width: 0; }
+  .entry-name {
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--cream);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .entry-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .entry-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+  }
+  .chip {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.5px;
+    padding: 2px 7px;
+    border-radius: 100px;
+    text-transform: uppercase;
+  }
+  .chip-gold { background: var(--gold-dim); color: var(--gold); border: 1px solid rgba(201,168,76,0.25); }
+  .chip-green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(46,204,113,0.25); }
+  .chip-red { background: var(--red-dim); color: var(--red); border: 1px solid rgba(231,76,60,0.2); }
+  .chip-amber { background: rgba(243,156,18,0.12); color: var(--amber); border: 1px solid rgba(243,156,18,0.25); }
+
+  .entry-notes {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: 5px;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .entry-del {
+    padding: 4px;
+    color: var(--navy-border);
+    font-size: 14px;
+    cursor: pointer;
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+  .entry-del:active { color: var(--red); }
+
+  /* empty state */
+  .empty {
+    padding: 60px 32px;
+    text-align: center;
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 16px; }
+  .empty-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    color: var(--cream);
+    margin-bottom: 8px;
+  }
+  .empty-sub { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+  .empty-cta {
+    margin-top: 24px;
+    display: inline-block;
+    padding: 12px 28px;
+    background: var(--gold);
+    color: var(--navy);
+    border-radius: 100px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    font-weight: 500;
+  }
+
+  /* ── ADD VIEW ── */
+  .add-view { padding: 0 0 16px; }
+
+  .form-section {
+    padding: 16px 16px 0;
+  }
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--navy-light);
+  }
+
+  .field-group { margin-bottom: 12px; }
+  .field-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    display: block;
+  }
+
+  input[type=text], input[type=date], input[type=time], select, textarea {
+    width: 100%;
+    background: var(--navy-mid);
+    border: 1px solid var(--navy-border);
+    border-radius: 8px;
+    color: var(--cream);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 0.15s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--gold);
+  }
+  select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c9a84c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+  select option { background: #1a2f45; }
+  textarea { resize: none; min-height: 80px; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* toggle buttons */
+  .toggle-row { display: flex; gap: 8px; }
+  .tgl {
+    flex: 1;
+    padding: 11px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--navy-border);
+    background: var(--navy-mid);
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .tgl:active { transform: scale(0.97); }
+  .tgl.yes { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+  .tgl.no  { background: var(--red-dim);   border-color: var(--red);   color: var(--red); }
+  .tgl.fu  { background: var(--gold-dim);  border-color: var(--gold);  color: var(--gold); }
+
+  /* submit */
+  .submit-wrap {
+    padding: 16px 16px 0;
+  }
+  .submit-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--gold);
+    color: var(--navy);
+    border: none;
+    border-radius: 10px;
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: all 0.15s;
+  }
+  .submit-btn:active { background: var(--gold-light); transform: scale(0.99); }
+
+  /* ── FOLLOW-UP VIEW ── */
+  .fu-view { padding: 0; }
+  .fu-empty {
+    padding: 60px 32px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  /* ── BOTTOM TAB BAR ── */
+  .tab-bar {
+    display: flex;
+    background: var(--navy-mid);
+    border-top: 1px solid var(--navy-light);
+    padding-bottom: var(--safe-bottom);
+    flex-shrink: 0;
+  }
+  .tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 4px 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .tab:active { background: var(--navy-light); }
+  .tab-icon { font-size: 20px; line-height: 1; }
+  .tab-lbl {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+  .tab.active .tab-lbl { color: var(--gold); }
+  .tab.active::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 20%; right: 20%;
+    height: 2px;
+    background: var(--gold);
+    border-radius: 0 0 2px 2px;
+  }
+  .tab-badge {
+    position: absolute;
+    top: 7px;
+    right: calc(50% - 16px);
+    background: var(--amber);
+    color: var(--navy);
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+  }
+
+  /* ── MODALS ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-sheet {
+    background: var(--navy-mid);
+    border-radius: 20px 20px 0 0;
+    padding: 20px 20px calc(20px + var(--safe-bottom));
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    border-top: 3px solid var(--gold);
+    animation: sheetUp 0.3s ease;
+  }
+  @keyframes sheetUp {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+  .modal-handle {
+    width: 36px; height: 4px;
+    background: var(--navy-light);
+    border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+  .modal-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: var(--gold);
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .modal-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--navy-light);
+    cursor: pointer;
+  }
+  .modal-row:last-child { border-bottom: none; }
+  .modal-row-label {
+    font-size: 15px;
+    color: var(--cream);
+  }
+  .modal-row-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .modal-row-arrow { color: var(--text-muted); font-size: 18px; }
+  .modal-row.danger .modal-row-label { color: var(--red); }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: calc(70px + var(--safe-bottom));
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--gold);
+    color: var(--navy);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    font-weight: 500;
+    padding: 10px 20px;
+    border-radius: 100px;
+    opacity: 0;
+    transition: all 0.25s ease;
+    z-index: 200;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* install banner */
+  .install-banner {
+    background: var(--gold-dim);
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 10px;
+    margin: 12px 16px;
+    padding: 12px 14px;
+    display: none;
+    align-items: center;
+    gap: 12px;
+  }
+  .install-banner.visible { display: flex; }
+  .install-banner-text { flex: 1; font-size: 13px; color: var(--cream-dim); line-height: 1.4; }
+  .install-banner-text strong { color: var(--gold); }
+  .install-btn-sm {
+    background: var(--gold);
+    color: var(--navy);
+    border: none;
+    border-radius: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 8px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+  .dismiss-btn {
+    color: var(--text-muted);
+    font-size: 18px;
+    cursor: pointer;
+    line-height: 1;
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="status-bar"></div>
+
+  <!-- TOP NAV -->
+  <div class="top-nav">
+    <div class="nav-brand">
+      <div class="nav-eyebrow">Play My Legacy</div>
+      <div class="nav-title">Legacy <span>Log</span></div>
+    </div>
+    <div class="nav-actions">
+      <div class="icon-btn" onclick="openMenu()" title="Menu">⋯</div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-cell">
+      <div class="stat-num" id="s-today">0</div>
+      <div class="stat-lbl">Today</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-num" id="s-total">0</div>
+      <div class="stat-lbl">Total</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-num" id="s-flyers">0</div>
+      <div class="stat-lbl">Flyers</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-num" id="s-fu">0</div>
+      <div class="stat-lbl">Follow-ups</div>
+    </div>
+  </div>
+
+  <!-- VIEWS -->
+  <div class="views">
+
+    <!-- LOG VIEW -->
+    <div class="view log-view active" id="view-log">
+      <div id="install-banner" class="install-banner">
+        <div class="install-banner-text"><strong>Install as App</strong><br>Add to home screen for quick access</div>
+        <button class="install-btn-sm" onclick="triggerInstall()">Install</button>
+        <div class="dismiss-btn" onclick="dismissBanner()">×</div>
+      </div>
+      <div id="log-list"></div>
+    </div>
+
+    <!-- ADD VIEW -->
+    <div class="view add-view" id="view-add">
+      <div class="form-section">
+        <div class="section-label">When & Who</div>
+        <div class="two-col" style="margin-bottom:12px">
+          <div class="field-group">
+            <label class="field-label">Date</label>
+            <input type="date" id="f-date">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Time</label>
+            <input type="time" id="f-time">
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Person Name *</label>
+          <input type="text" id="f-person" placeholder="First & Last Name" autocomplete="name">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Company / Location</label>
+          <input type="text" id="f-company" placeholder="e.g. Walgreens on McDowell">
+        </div>
+      </div>
+
+      <div class="form-section" style="margin-top:16px">
+        <div class="section-label">Activity Details</div>
+        <div class="field-group">
+          <label class="field-label">Activity Type</label>
+          <select id="f-type">
+            <option value="">Select type…</option>
+            <option>Door Knock</option>
+            <option>Phone Call</option>
+            <option>Referral Visit</option>
+            <option>Walk-In</option>
+            <option>Follow-Up</option>
+            <option>Workshop</option>
+            <option>Social Media Lead</option>
+            <option>Email Outreach</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Service Interest</label>
+          <select id="f-service">
+            <option value="">Select…</option>
+            <option>Medicare Review</option>
+            <option>Estate Planning</option>
+            <option>Both</option>
+            <option>Not Sure Yet</option>
+            <option>Referral Partner</option>
+          </select>
+        </div>
+        <div class="two-col">
+          <div class="field-group">
+            <label class="field-label">Gave Flyer?</label>
+            <div class="toggle-row">
+              <div class="tgl" id="tgl-fy" onclick="setTgl('flyer','yes')">✓ Yes</div>
+              <div class="tgl" id="tgl-fn" onclick="setTgl('flyer','no')">✗ No</div>
+            </div>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Follow-Up?</label>
+            <div class="toggle-row">
+              <div class="tgl" id="tgl-fuy" onclick="setTgl('fu','yes')">🔔 Yes</div>
+              <div class="tgl" id="tgl-fun" onclick="setTgl('fu','no')">✗ No</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section" style="margin-top:16px">
+        <div class="section-label">Notes & Thoughts</div>
+        <div class="field-group">
+          <textarea id="f-notes" placeholder="Interested in Medicare review, husband on VA benefits, callback Thursday 2pm…"></textarea>
+        </div>
+      </div>
+
+      <div class="submit-wrap">
+        <button class="submit-btn" onclick="addEntry()">+ Log This Activity</button>
+      </div>
+    </div>
+
+    <!-- FOLLOW-UPS VIEW -->
+    <div class="view fu-view" id="view-fu">
+      <div id="fu-list"></div>
+    </div>
+
+  </div><!-- /views -->
+
+  <!-- TAB BAR -->
+  <div class="tab-bar">
+    <div class="tab active" id="tab-log" onclick="switchTab('log')">
+      <div class="tab-icon">📋</div>
+      <div class="tab-lbl">Log</div>
+    </div>
+    <div class="tab" id="tab-add" onclick="switchTab('add')">
+      <div class="tab-icon">＋</div>
+      <div class="tab-lbl">Add</div>
+    </div>
+    <div class="tab" id="tab-fu" onclick="switchTab('fu')">
+      <div class="tab-icon">🔔</div>
+      <div class="tab-lbl">Follow-ups</div>
+      <div class="tab-badge" id="fu-badge" style="display:none">0</div>
+    </div>
+  </div>
+</div>
+
+<!-- MENU MODAL -->
+<div class="modal-overlay" id="menu-modal" onclick="closeMenu(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Options</div>
+    <div class="modal-row" onclick="exportCSV(); closeMenu()">
+      <div>
+        <div class="modal-row-label">⬇ Export to CSV</div>
+        <div class="modal-row-sub">Open in Excel or Google Sheets</div>
+      </div>
+      <div class="modal-row-arrow">›</div>
+    </div>
+    <div class="modal-row" onclick="triggerInstall(); closeMenu()">
+      <div>
+        <div class="modal-row-label">📲 Install App</div>
+        <div class="modal-row-sub">Add to Android home screen</div>
+      </div>
+      <div class="modal-row-arrow">›</div>
+    </div>
+    <div class="modal-row danger" onclick="clearAll(); closeMenu()">
+      <div>
+        <div class="modal-row-label">✕ Clear All Data</div>
+        <div class="modal-row-sub">Cannot be undone</div>
+      </div>
+      <div class="modal-row-arrow">›</div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── DATA ──
+  let entries = JSON.parse(localStorage.getItem('ll-entries') || '[]');
+  let flyerVal = '', fuVal = '';
+  let deferredInstallPrompt = null;
+
+  // ── SERVICE WORKER ──
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(r => console.log('SW registered'))
+        .catch(e => console.log('SW error', e));
+    });
+  }
+
+  // ── PWA INSTALL ──
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    document.getElementById('install-banner').classList.add('visible');
+  });
+
+  function triggerInstall() {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      deferredInstallPrompt.userChoice.then(() => {
+        deferredInstallPrompt = null;
+        document.getElementById('install-banner').classList.remove('visible');
+      });
+    } else {
+      showToast('Open in Chrome → Menu → Add to Home Screen');
+    }
+  }
+
+  function dismissBanner() {
+    document.getElementById('install-banner').classList.remove('visible');
+  }
+
+  // ── INIT ──
+  const now = new Date();
+  document.getElementById('f-date').value = now.toISOString().split('T')[0];
+  document.getElementById('f-time').value = now.toTimeString().slice(0,5);
+
+  // ── TABS ──
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    document.getElementById('view-' + name).classList.add('active');
+    if (name === 'fu') renderFU();
+  }
+
+  // ── TOGGLES ──
+  function setTgl(field, val) {
+    if (field === 'flyer') {
+      flyerVal = val;
+      document.getElementById('tgl-fy').className = 'tgl' + (val === 'yes' ? ' yes' : '');
+      document.getElementById('tgl-fn').className = 'tgl' + (val === 'no' ? ' no' : '');
+    } else {
+      fuVal = val;
+      document.getElementById('tgl-fuy').className = 'tgl' + (val === 'yes' ? ' fu' : '');
+      document.getElementById('tgl-fun').className = 'tgl' + (val === 'no' ? ' no' : '');
+    }
+  }
+
+  // ── ADD ENTRY ──
+  function addEntry() {
+    const date = document.getElementById('f-date').value;
+    const person = document.getElementById('f-person').value.trim();
+    if (!date || !person) { showToast('Date & Name required'); return; }
+
+    const entry = {
+      id: Date.now(),
+      date,
+      time: document.getElementById('f-time').value,
+      person,
+      company: document.getElementById('f-company').value.trim(),
+      type: document.getElementById('f-type').value,
+      service: document.getElementById('f-service').value,
+      flyer: flyerVal,
+      followup: fuVal,
+      notes: document.getElementById('f-notes').value.trim()
+    };
+
+    entries.unshift(entry);
+    save();
+    resetForm();
+    render();
+    switchTab('log');
+    showToast('Activity logged ✓');
+  }
+
+  function deleteEntry(id) {
+    if (!confirm('Delete this entry?')) return;
+    entries = entries.filter(e => e.id !== id);
+    save();
+    render();
+    renderFU();
+    showToast('Deleted');
+  }
+
+  function resetForm() {
+    ['f-person','f-company','f-notes'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('f-type').value = '';
+    document.getElementById('f-service').value = '';
+    flyerVal = ''; fuVal = '';
+    ['tgl-fy','tgl-fn','tgl-fuy','tgl-fun'].forEach(id => document.getElementById(id).className = 'tgl');
+    const n = new Date();
+    document.getElementById('f-time').value = n.toTimeString().slice(0,5);
+  }
+
+  function save() {
+    localStorage.setItem('ll-entries', JSON.stringify(entries));
+  }
+
+  // ── RENDER LOG ──
+  function render() {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayCount = entries.filter(e => e.date === todayStr).length;
+    const flyerCount = entries.filter(e => e.flyer === 'yes').length;
+    const fuCount = entries.filter(e => e.followup === 'yes').length;
+
+    document.getElementById('s-today').textContent = todayCount;
+    document.getElementById('s-total').textContent = entries.length;
+    document.getElementById('s-flyers').textContent = flyerCount;
+    document.getElementById('s-fu').textContent = fuCount;
+
+    const badge = document.getElementById('fu-badge');
+    if (fuCount > 0) { badge.style.display = 'flex'; badge.textContent = fuCount; }
+    else badge.style.display = 'none';
+
+    const list = document.getElementById('log-list');
+
+    if (entries.length === 0) {
+      list.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">📋</div>
+          <div class="empty-title">Start Your Day</div>
+          <div class="empty-sub">Log your first door knock, call, or referral visit to get started.</div>
+          <div class="empty-cta" onclick="switchTab('add')">+ Add First Activity</div>
+        </div>`;
+      return;
+    }
+
+    // Group by date
+    const grouped = {};
+    entries.forEach(e => { if (!grouped[e.date]) grouped[e.date] = []; grouped[e.date].push(e); });
+
+    let html = '';
+    Object.keys(grouped).sort((a,b) => b.localeCompare(a)).forEach(date => {
+      const dayEntries = grouped[date];
+      const d = new Date(date + 'T12:00:00');
+      const label = d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+      html += `
+        <div class="date-header">
+          <span class="date-header-label">${label}</span>
+          <span class="date-header-count">${dayEntries.length} entr${dayEntries.length===1?'y':'ies'}</span>
+        </div>`;
+      dayEntries.forEach(e => {
+        const dotCls = e.followup === 'yes' ? 'entry-dot amber' : e.flyer === 'yes' ? 'entry-dot green' : 'entry-dot';
+        const timeParts = e.time ? fmtTime(e.time).split(' ') : [];
+        html += `
+          <div class="entry-card">
+            <div class="entry-time-col">
+              ${e.time ? `<div class="entry-time">${timeParts[0]}<br><span style="font-size:9px">${timeParts[1]}</span></div>` : ''}
+              <div class="${dotCls}"></div>
+            </div>
+            <div class="entry-body">
+              <div class="entry-name">${e.person}</div>
+              ${e.company ? `<div class="entry-sub">${e.company}</div>` : ''}
+              <div class="entry-chips">
+                ${e.type ? `<span class="chip chip-gold">${e.type}</span>` : ''}
+                ${e.service ? `<span class="chip chip-gold">${e.service}</span>` : ''}
+                ${e.flyer==='yes' ? `<span class="chip chip-green">✓ Flyer</span>` : ''}
+                ${e.flyer==='no' ? `<span class="chip chip-red">No Flyer</span>` : ''}
+                ${e.followup==='yes' ? `<span class="chip chip-amber">🔔 Follow-up</span>` : ''}
+              </div>
+              ${e.notes ? `<div class="entry-notes">${e.notes}</div>` : ''}
+            </div>
+            <div class="entry-del" onclick="deleteEntry(${e.id})">✕</div>
+          </div>`;
+      });
+    });
+
+    list.innerHTML = html;
+  }
+
+  // ── RENDER FOLLOW-UPS ──
+  function renderFU() {
+    const fuEntries = entries.filter(e => e.followup === 'yes');
+    const list = document.getElementById('fu-list');
+    if (fuEntries.length === 0) {
+      list.innerHTML = `<div class="fu-empty">
+        <div style="font-size:40px;margin-bottom:12px">🎉</div>
+        <div style="color:var(--cream);font-family:'Playfair Display',serif;font-size:20px;margin-bottom:8px">All Clear</div>
+        No pending follow-ups right now.
+      </div>`;
+      return;
+    }
+    let html = '';
+    fuEntries.forEach(e => {
+      const d = new Date(e.date + 'T12:00:00');
+      const label = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      html += `
+        <div class="entry-card">
+          <div class="entry-time-col">
+            <div class="entry-time" style="font-size:9px">${label}</div>
+            <div class="entry-dot amber"></div>
+          </div>
+          <div class="entry-body">
+            <div class="entry-name">${e.person}</div>
+            ${e.company ? `<div class="entry-sub">${e.company}</div>` : ''}
+            <div class="entry-chips">
+              ${e.type ? `<span class="chip chip-gold">${e.type}</span>` : ''}
+              ${e.service ? `<span class="chip chip-gold">${e.service}</span>` : ''}
+            </div>
+            ${e.notes ? `<div class="entry-notes">${e.notes}</div>` : ''}
+          </div>
+          <div class="entry-del" onclick="deleteEntry(${e.id})">✕</div>
+        </div>`;
+    });
+    list.innerHTML = html;
+  }
+
+  function fmtTime(t) {
+    const [h, m] = t.split(':');
+    const hr = parseInt(h);
+    return `${hr % 12 || 12}:${m} ${hr < 12 ? 'AM' : 'PM'}`;
+  }
+
+  // ── EXPORT ──
+  function exportCSV() {
+    if (!entries.length) { showToast('Nothing to export'); return; }
+    const headers = ['Date','Day','Time','Person','Company','Activity Type','Service','Flyer Given','Follow-Up','Notes'];
+    const rows = entries.map(e => {
+      const d = new Date(e.date + 'T12:00:00');
+      const day = d.toLocaleDateString('en-US', { weekday: 'long' });
+      return [e.date, day, e.time, e.person, e.company, e.type, e.service,
+        e.flyer==='yes'?'Yes':e.flyer==='no'?'No':'',
+        e.followup==='yes'?'Yes':e.followup==='no'?'No':'',
+        '"'+(e.notes||'').replace(/"/g,'""')+'"'].join(',');
+    });
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], {type:'text/csv'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `legacy-log-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    showToast('CSV exported ✓');
+  }
+
+  function clearAll() {
+    if (!confirm('Clear ALL entries? This cannot be undone.')) return;
+    entries = [];
+    save();
+    render();
+    showToast('Cleared');
+  }
+
+  // ── MENU ──
+  function openMenu() { document.getElementById('menu-modal').classList.add('open'); }
+  function closeMenu(e) {
+    if (!e || e.target === document.getElementById('menu-modal')) {
+      document.getElementById('menu-modal').classList.remove('open');
+    }
+  }
+
+  // ── TOAST ──
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  render();
+</script>
+</body>
+</html>
